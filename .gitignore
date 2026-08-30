@@ -52,7 +52,8 @@ $RECYCLE.BIN/
 .DS_Store
 
 # ----- Local tooling -------------------------------------------------------
-.claude/settings.local.json
+# Never commit agent/editor workspace state
+.claude/
 
 # ----- Logs / scratch ------------------------------------------------------
 *.log
