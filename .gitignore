@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# AirClip — repository ignore rules
+# ---------------------------------------------------------------------------
+
+# ----- Android / Gradle ----------------------------------------------------
+.gradle/
+.kotlin/
+build/
+captures/
+.cxx/
+# Machine-specific SDK location, must never be committed
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.hprof
+
+# Signing material
+*.jks
+*.keystore
+
+# ----- .NET / Visual Studio ------------------------------------------------
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.binlog
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+publish/
+*.pfx
+*.p12
+*.snk
+
+# ----- IDE / editor --------------------------------------------------------
+.idea/
+*.iml
+*.swp
+.vscode/
+
+# ----- OS ------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ----- Local tooling -------------------------------------------------------
+.claude/settings.local.json
+
+# ----- Logs / scratch ------------------------------------------------------
+*.log

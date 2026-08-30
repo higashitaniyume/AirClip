@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Images put on the clipboard must be handed out as content URIs; the pasting app is granted
+     read access by ClipboardService on our behalf, which only works for a grantUriPermissions
+     provider like this one. -->
+<paths>
+    <cache-path
+        name="clips"
+        path="clips/" />
+</paths>

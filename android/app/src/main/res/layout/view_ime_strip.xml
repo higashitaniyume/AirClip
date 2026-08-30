@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IME input view. Not a keyboard: three relay actions plus a hint line. Keeping it tiny is the
+     point, since its only job is to be the *selected* IME so clipboard reads are permitted. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp">
+
+    <TextView
+        android:id="@+id/ime_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
+        android:text="@string/ime_hint"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/ime_send"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ime_send" />
+
+    <Button
+        android:id="@+id/ime_paste"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/ime_paste_last" />
+
+    <Button
+        android:id="@+id/ime_switch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/ime_switch_back" />
+
+</LinearLayout>

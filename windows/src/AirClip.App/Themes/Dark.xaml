@@ -1,0 +1,248 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Palette. Deliberately fixed dark: the tray glyph colours come from the same values. -->
+  <SolidColorBrush x:Key="Brush.Bg" Color="#0F1115" />
+  <SolidColorBrush x:Key="Brush.Panel" Color="#171A21" />
+  <SolidColorBrush x:Key="Brush.PanelAlt" Color="#1E222B" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#2A2F3A" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#E6E8EC" />
+  <SolidColorBrush x:Key="Brush.Muted" Color="#9AA1AC" />
+  <SolidColorBrush x:Key="Brush.Accent" Color="#3B82F6" />
+  <SolidColorBrush x:Key="Brush.AccentSoft" Color="#1D3A6E" />
+  <SolidColorBrush x:Key="Brush.Warn" Color="#F59E0B" />
+  <SolidColorBrush x:Key="Brush.Good" Color="#22C55E" />
+
+  <!--
+    There is deliberately no implicit TextBlock style. Font and foreground are set once on the window
+    and reach every TextBlock by property inheritance; a style setter would outrank that inheritance
+    inside control templates and force button and tab text to the wrong colour.
+  -->
+  <Style x:Key="Text.Title" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style x:Key="Text.Section" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,0,10" />
+  </Style>
+
+  <Style x:Key="Text.Muted" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Muted}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style x:Key="Text.Mono" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Muted}" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style x:Key="Card" TargetType="Border">
+    <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style TargetType="Button">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="7"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Chrome" Property="Background" Value="{StaticResource Brush.AccentSoft}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="Button.Primary" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Background" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style x:Key="Button.Small" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Padding" Value="10,4" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style TargetType="CheckBox">
+    <!--
+      Explicit, even though the window already sets it: a control's own theme style outranks inherited
+      values, so without this setter the labels keep the system light-theme foreground and read as grey.
+    -->
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Margin" Value="0,7" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="Box" Width="18" Height="18" CornerRadius="5" VerticalAlignment="Center"
+                    Background="{StaticResource Brush.PanelAlt}" BorderThickness="1"
+                    BorderBrush="{StaticResource Brush.Border}">
+              <Path x:Name="Tick" Width="11" Height="11" Stretch="Uniform" Opacity="0" Fill="White"
+                    Data="M 0,5.2 L 1.4,3.8 L 3.9,6.3 L 9.4,0.8 L 10.8,2.2 L 3.9,9.1 Z" />
+            </Border>
+            <ContentPresenter Margin="9,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Box" Property="Background" Value="{StaticResource Brush.Accent}" />
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+              <Setter TargetName="Tick" Property="Opacity" Value="1" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="TextBox">
+    <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    <Setter Property="CaretBrush" Value="{StaticResource Brush.Text}" />
+    <Setter Property="SelectionBrush" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="Padding" Value="9,6" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TextBox">
+          <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="7"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                          VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+              <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="TabControl">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabControl">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
+              <TabPanel IsItemsHost="True" Margin="0,0,0,-1" />
+            </Border>
+            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent" Margin="0,14,0,0" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="TabItem">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Muted}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabItem">
+          <Border x:Name="Chrome" Background="Transparent" Padding="15,9"
+                  BorderThickness="0,0,0,2" BorderBrush="Transparent">
+            <!-- An explicit TextBlock, so the tab colour is a template value and cannot be outranked. -->
+            <TextBlock Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="ScrollThumb" TargetType="Thumb">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Border Background="{StaticResource Brush.Border}" CornerRadius="3" Margin="3,0" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Vertical only: every scroller in this window disables horizontal scrolling. -->
+  <Style TargetType="ScrollBar">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ScrollBar">
+          <Grid Background="Transparent">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+              <Track.Thumb>
+                <Thumb Style="{StaticResource ScrollThumb}" />
+              </Track.Thumb>
+              <Track.IncreaseRepeatButton>
+                <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False" />
+              </Track.IncreaseRepeatButton>
+              <Track.DecreaseRepeatButton>
+                <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False" />
+              </Track.DecreaseRepeatButton>
+            </Track>
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="ToolTip">
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToolTip">
+          <Border Background="{StaticResource Brush.PanelAlt}" CornerRadius="6" Padding="9,6"
+                  BorderBrush="{StaticResource Brush.Border}" BorderThickness="1">
+            <ContentPresenter />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+</ResourceDictionary>

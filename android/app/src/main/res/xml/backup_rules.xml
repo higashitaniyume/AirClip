@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The pairing key never leaves the device: it is sealed by an AndroidKeyStore key that backup
+     cannot export anyway, but excluding it keeps a restored install from looking half-paired. -->
+<full-backup-content>
+    <include domain="sharedpref" path="." />
+    <exclude domain="file" path="datastore/airclip_secrets.preferences_pb" />
+</full-backup-content>

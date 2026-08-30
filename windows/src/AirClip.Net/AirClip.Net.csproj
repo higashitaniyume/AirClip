@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AirClip.Net</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AirClip.Core\AirClip.Core.csproj" />
+    <ProjectReference Include="..\AirClip.Crypto\AirClip.Crypto.csproj" />
+    <ProjectReference Include="..\AirClip.Discovery\AirClip.Discovery.csproj" />
+  </ItemGroup>
+
+</Project>

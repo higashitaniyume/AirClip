@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirClip</string>
+    <string name="tile_label">发送剪贴板</string>
+    <string name="ime_label">AirClip 剪贴板中继键盘</string>
+    <string name="ime_subtype_label">AirClip 中继</string>
+    <string name="accessibility_service_label">AirClip 剪贴板监听</string>
+    <string name="accessibility_service_description">监听复制操作，将本机剪贴板内容同步到已配对的电脑。AirClip 只读取剪贴板，不会读取或上传屏幕上的其他内容。</string>
+
+    <!-- 通知 -->
+    <string name="channel_sync_name">同步服务</string>
+    <string name="channel_sync_description">常驻通知，显示连接状态并提供快捷操作</string>
+    <string name="channel_received_name">收到新内容</string>
+    <string name="channel_received_description">电脑推送剪贴板内容时提醒，并提供一键复制</string>
+    <string name="notif_running_title">AirClip 正在同步</string>
+    <string name="notif_paused_title">AirClip 已暂停</string>
+    <string name="notif_action_send">发送剪贴板</string>
+    <string name="notif_action_copy">一键复制</string>
+    <string name="notif_action_pause">暂停</string>
+    <string name="notif_action_resume">恢复</string>
+    <string name="notif_action_stop">停止</string>
+    <string name="notif_received_text">收到文本 · %1$s</string>
+    <string name="notif_received_image">收到图片 · %1$d×%2$d</string>
+    <string name="notif_copied">已复制到剪贴板</string>
+
+    <!-- Toast / 状态 -->
+    <string name="toast_sent">已发送到 %1$d 台设备</string>
+    <string name="toast_no_peer">尚无已连接设备</string>
+    <string name="toast_clipboard_empty">剪贴板为空，或内容已被过滤</string>
+    <string name="toast_read_denied">系统拒绝了后台读取剪贴板，请启用输入法 / 无障碍 / Shizuku 任一方案</string>
+    <string name="toast_service_off">同步服务未运行</string>
+
+    <!-- 导航 -->
+    <string name="nav_home">首页</string>
+    <string name="nav_devices">设备</string>
+    <string name="nav_history">历史</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- 首页 -->
+    <string name="home_state_connected">已连接 %1$d 台设备</string>
+    <string name="home_state_offline">离线 · 未发现设备</string>
+    <string name="home_state_paused">已暂停</string>
+    <string name="home_sync_switch">同步服务</string>
+    <string name="home_sync_switch_hint">常驻前台服务，负责设备发现与收发</string>
+    <string name="home_send_now">立即发送剪贴板</string>
+    <string name="home_capabilities">后台读取方案</string>
+    <string name="home_capability_ime">输入法（推荐）</string>
+    <string name="home_capability_accessibility">无障碍服务</string>
+    <string name="home_capability_shizuku">Shizuku</string>
+    <string name="home_capability_tile">快捷设置磁贴</string>
+    <string name="home_capability_overlay">悬浮窗辅助</string>
+    <string name="home_capability_ready">已启用</string>
+    <string name="home_capability_missing">未启用</string>
+    <string name="home_open_settings">前往系统设置</string>
+    <string name="home_local_device">本机：%1$s · %2$s · :%3$d</string>
+
+    <!-- 设备 -->
+    <string name="devices_empty">未发现设备。请确认电脑端已启动，且与手机处于同一 Wi-Fi。</string>
+    <string name="devices_discovered">已发现</string>
+    <string name="devices_paired">已配对</string>
+    <string name="devices_connect">连接</string>
+    <string name="devices_disconnect">断开</string>
+    <string name="devices_rtt">延迟 %1$d ms</string>
+    <string name="devices_refresh">重新扫描</string>
+
+    <!-- 配对 -->
+    <string name="pair_title">配对</string>
+    <string name="pair_show_qr">出示二维码</string>
+    <string name="pair_scan_qr">扫描电脑二维码</string>
+    <string name="pair_qr_hint">在电脑端 AirClip 里选择「扫描手机二维码」，或用手机扫描电脑上的二维码。两端密钥一致后才会开始加密同步。</string>
+    <string name="pair_fingerprint">密钥指纹 %1$s</string>
+    <string name="pair_regenerate">重新生成密钥</string>
+    <string name="pair_manual">手动输入配对码</string>
+    <string name="pair_manual_hint">配对码 / 预共享口令</string>
+    <string name="pair_apply">应用</string>
+    <string name="pair_success">已保存配对密钥（指纹 %1$s）</string>
+    <string name="pair_invalid">配对码无效</string>
+    <string name="pair_camera_denied">未授予相机权限，无法扫码</string>
+
+    <!-- 历史 -->
+    <string name="history_empty">暂无记录</string>
+    <string name="history_clear">清空</string>
+    <string name="history_copy">复制</string>
+    <string name="history_resend">重新发送</string>
+    <string name="history_from_local">本机</string>
+
+    <!-- 设置 -->
+    <string name="settings_device_name">设备名称</string>
+    <string name="settings_port">监听端口</string>
+    <string name="settings_service_type">mDNS 服务类型</string>
+    <string name="settings_sync_images">同步图片</string>
+    <string name="settings_auto_apply">自动写入收到的内容</string>
+    <string name="settings_auto_apply_hint">关闭后仅发送通知，由你点「一键复制」再写入</string>
+    <string name="settings_keep_history">保留历史记录</string>
+    <string name="settings_history_limit">历史条数上限</string>
+    <string name="settings_max_text_kb">文本上限 (KB)</string>
+    <string name="settings_max_image_kb">图片上限 (KB)</string>
+    <string name="settings_start_on_boot">开机自启</string>
+    <string name="settings_encryption_required">仅在已配对（加密）时同步</string>
+    <string name="settings_encryption_hint">关闭后允许明文同步，仅建议在可信网络下临时使用</string>
+    <string name="settings_shizuku_poll_ms">Shizuku 轮询间隔 (ms)</string>
+    <string name="settings_section_identity">身份与网络</string>
+    <string name="settings_section_content">内容</string>
+    <string name="settings_section_security">安全</string>
+    <string name="settings_section_backends">后台读取</string>
+    <string name="settings_shizuku_request">请求 Shizuku 授权</string>
+    <string name="settings_shizuku_missing">未检测到 Shizuku 服务，请先启动 Shizuku 应用</string>
+    <string name="settings_shizuku_granted">Shizuku 已授权</string>
+    <string name="settings_shizuku_denied">Shizuku 授权被拒绝</string>
+    <string name="settings_enable_ime">启用输入法</string>
+    <string name="settings_pick_ime">切换到 AirClip 键盘</string>
+    <string name="settings_enable_accessibility">启用无障碍服务</string>
+    <string name="settings_enable_overlay">授予悬浮窗权限</string>
+    <string name="settings_enable_notifications">允许通知</string>
+    <string name="settings_battery_optimization">忽略电池优化</string>
+
+    <!-- 输入法界面 -->
+    <string name="ime_send">发送剪贴板到电脑</string>
+    <string name="ime_paste_last">粘贴最近收到的内容</string>
+    <string name="ime_switch_back">切回上一个键盘</string>
+    <string name="ime_hint">此键盘仅用于剪贴板中继：选中它即可让 AirClip 合法读取剪贴板。</string>
+
+    <!-- 反馈补充 -->
+    <string name="toast_too_large">内容超过大小上限，未发送</string>
+    <string name="toast_unsupported">该类型内容未开启同步</string>
+    <string name="toast_read_error">读取剪贴板失败</string>
+    <string name="toast_copy_failed">写入剪贴板失败</string>
+    <string name="toast_pair_first">尚未配对，请先完成配对</string>
+    <string name="toast_nothing_received">还没有收到任何内容</string>
+
+    <!-- 通用 -->
+    <string name="common_ok">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_close">关闭</string>
+
+    <!-- 首页补充 -->
+    <string name="home_encrypted">已加密 · AES-256-GCM · 指纹 %1$s</string>
+    <string name="home_plaintext">未配对：内容将以明文发送，仅建议在可信网络临时使用</string>
+    <string name="home_unpaired">尚未配对：前往「配对」生成或扫描密钥后才会同步</string>
+    <string name="home_last_source">最近一次成功读取：%1$s</string>
+    <string name="home_pair_action">去配对</string>
+    <string name="home_capability_hint">任选一种即可让 AirClip 在后台读取剪贴板；输入法最稳定，Shizuku 最省心。</string>
+
+    <!-- 读取来源 -->
+    <string name="source_listener">系统监听</string>
+    <string name="source_ime">输入法</string>
+    <string name="source_accessibility">无障碍</string>
+    <string name="source_tile">快捷磁贴</string>
+    <string name="source_shizuku">Shizuku</string>
+    <string name="source_manual">手动</string>
+    <string name="source_history">历史</string>
+
+    <!-- 历史补充 -->
+    <string name="history_unavailable">内容已清理，无法再次使用</string>
+    <string name="history_delete">删除</string>
+    <string name="history_image">图片 %1$d × %2$d</string>
+
+    <!-- 配对补充 -->
+    <string name="pair_scan_prompt">将电脑上的二维码放入取景框</string>
+    <string name="pair_grant_camera">授予相机权限</string>
+    <string name="pair_forget">清除本机密钥</string>
+    <string name="pair_uri_hint">也可以把这串文字发给电脑端粘贴</string>
+
+    <!-- 设置补充 -->
+    <string name="settings_keystore_fallback">此设备的密钥库不可用，配对密钥以明文保存</string>
+    <string name="settings_shizuku_pre_v11">检测到旧版 Shizuku，请在系统权限中授予 API 权限</string>
+    <string name="settings_shizuku_polling">Shizuku 轮询监听</string>
+    <string name="settings_shizuku_polling_hint">仅 Shizuku 方案需要轮询；启用输入法或无障碍时可关闭</string>
+    <string name="settings_overlay_assist">无障碍悬浮窗辅助</string>
+    <string name="settings_overlay_assist_hint">复制时瞬间闪现一个 1×1 悬浮窗以取得焦点，这是无障碍方案唯一的合法读取方式</string>
+    <string name="settings_section_about">关于</string>
+    <string name="settings_about_protocol">协议 v%1$s · 监听 :%2$d · %3$s</string>
+
+    <!-- 界面补充 -->
+    <string name="home_section_status">同步状态</string>
+    <string name="home_section_reliability">后台可靠性</string>
+    <string name="home_reliability_hint">允许通知才能看到常驻通知和「一键复制」；把 AirClip 加入电池优化白名单可避免息屏后连接被系统掐断。</string>
+    <string name="home_capability_notifications">通知</string>
+    <string name="home_capability_battery">电池优化白名单</string>
+    <string name="home_pause">暂停</string>
+    <string name="home_resume">恢复</string>
+    <string name="devices_self">本机</string>
+    <string name="devices_connected">已连接</string>
+    <string name="devices_plaintext">未加密</string>
+    <string name="devices_fingerprint_mismatch">密钥指纹与本机不一致，无法解密</string>
+    <string name="history_source">%1$s · %2$s · %3$s</string>
+    <string name="pair_no_qr">当前使用口令配对，无法生成二维码；请在电脑端输入同一口令。</string>
+    <string name="pair_none">尚未生成密钥</string>
+    <string name="pair_copy_uri">复制配对链接</string>
+    <string name="pair_copied">已复制配对链接</string>
+    <string name="settings_section_notifications">通知与提示</string>
+    <string name="settings_notify_on_receive">收到内容时发送通知</string>
+    <string name="settings_toast_on_receive">收到内容时弹出提示</string>
+    <string name="settings_honor_sensitive">跳过敏感内容</string>
+    <string name="settings_honor_sensitive_hint">尊重密码管理器等应用标记的 IS_SENSITIVE，不同步这类剪贴板</string>
+    <string name="settings_debounce_ms">防抖间隔 (ms)</string>
+    <string name="settings_service_type_hint">需与电脑端一致，通常不用改</string>
+    <string name="settings_add_tile">添加快捷设置磁贴</string>
+    <string name="settings_add_tile_hint">下拉通知栏点一下磁贴就能发送剪贴板，不必打开应用</string>
+    <string name="settings_tile_added">已添加磁贴</string>
+    <string name="settings_tile_manual">请下拉通知栏，在「编辑磁贴」里手动添加「发送剪贴板」</string>
+    <string name="settings_pair_entry">配对与密钥</string>
+    <string name="settings_shizuku_pending">Shizuku 已运行，等待授权</string>
+
+    <!-- 配对界面 -->
+    <string name="pair_qr_image">配对二维码</string>
+    <string name="pair_generate">生成密钥</string>
+    <string name="pair_regenerate_hint">重新生成后旧密钥立即失效，电脑端必须重新扫码或输入新的配对链接</string>
+    <string name="pair_manual_note">可以粘贴电脑端的配对链接、Base64 密钥，或两端约定的同一句口令</string>
+</resources>

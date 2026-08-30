@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Plan A-2. Only click events are requested: the copy the user taps in the text toolbar is an
+  ordinary view click, and selection / window-content events would mean a constant stream of IPC for
+  no extra signal. flagRequestFilterKeyEvents is deliberately absent — AirClip never needs key
+  events, and canRetrieveWindowContent stays on only so the tapped node's label can be read.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewClicked|typeViewLongClicked"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:summary="@string/accessibility_service_label" />

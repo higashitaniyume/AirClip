@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>AirClip.App</RootNamespace>
+    <AssemblyName>AirClip</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Tray-resident process: workstation, non-concurrent GC keeps the idle footprint down. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AirClip.Core\AirClip.Core.csproj" />
+    <ProjectReference Include="..\AirClip.Crypto\AirClip.Crypto.csproj" />
+    <ProjectReference Include="..\AirClip.Discovery\AirClip.Discovery.csproj" />
+    <ProjectReference Include="..\AirClip.Net\AirClip.Net.csproj" />
+    <ProjectReference Include="..\AirClip.Platform.Windows\AirClip.Platform.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

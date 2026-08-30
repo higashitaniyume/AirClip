@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Labels a "copy" button carries in the system text toolbar. The accessibility path matches the
+      tapped view's label against this list, because Android gives it no clipboard event to listen to
+      while AirClip is in the background. Lower-cased before comparison, matched as a substring, and
+      deliberately locale-independent: the toolbar follows the *system* language, which is often not
+      the language AirClip is running in.
+    -->
+    <string-array name="copy_action_labels" translatable="false">
+        <item>复制</item>
+        <item>拷贝</item>
+        <item>copy</item>
+        <item>コピー</item>
+        <item>복사</item>
+    </string-array>
+</resources>
