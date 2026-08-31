@@ -70,7 +70,6 @@ class SettingsStore(context: Context) {
             startOnBoot = preferences[Keys.startOnBoot] ?: defaults.startOnBoot,
             autoApplyRemote = preferences[Keys.autoApply] ?: defaults.autoApplyRemote,
             toastOnReceive = preferences[Keys.toastOnReceive] ?: defaults.toastOnReceive,
-            requireEncryption = preferences[Keys.requireEncryption] ?: defaults.requireEncryption,
             overlayAssist = preferences[Keys.overlayAssist] ?: defaults.overlayAssist,
             shizukuPolling = preferences[Keys.shizukuPolling] ?: defaults.shizukuPolling,
             shizukuPollMillis = preferences[Keys.shizukuPollMs] ?: defaults.shizukuPollMillis,
@@ -94,7 +93,6 @@ class SettingsStore(context: Context) {
         preferences[Keys.startOnBoot] = value.startOnBoot
         preferences[Keys.autoApply] = value.autoApplyRemote
         preferences[Keys.toastOnReceive] = value.toastOnReceive
-        preferences[Keys.requireEncryption] = value.requireEncryption
         preferences[Keys.overlayAssist] = value.overlayAssist
         preferences[Keys.shizukuPolling] = value.shizukuPolling
         preferences[Keys.shizukuPollMs] = value.shizukuPollMillis
@@ -118,7 +116,6 @@ class SettingsStore(context: Context) {
         val startOnBoot = booleanPreferencesKey("start_on_boot")
         val autoApply = booleanPreferencesKey("auto_apply_remote")
         val toastOnReceive = booleanPreferencesKey("toast_on_receive")
-        val requireEncryption = booleanPreferencesKey("require_encryption")
         val overlayAssist = booleanPreferencesKey("overlay_assist")
         val shizukuPolling = booleanPreferencesKey("shizuku_polling")
         val shizukuPollMs = longPreferencesKey("shizuku_poll_ms")

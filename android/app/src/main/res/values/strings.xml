@@ -67,11 +67,11 @@
     <string name="pair_title">配对</string>
     <string name="pair_show_qr">出示二维码</string>
     <string name="pair_scan_qr">扫描电脑二维码</string>
-    <string name="pair_qr_hint">在电脑端 AirClip 里选择「扫描手机二维码」，或用手机扫描电脑上的二维码。两端密钥一致后才会开始加密同步。</string>
+    <string name="pair_qr_hint">在电脑端 AirClip 里选择「扫描手机二维码」，或用手机扫描电脑上的二维码；不方便扫码时，把下面的配对码在电脑端输入即可。两端配对码一致后才能连接。</string>
     <string name="pair_fingerprint">密钥指纹 %1$s</string>
     <string name="pair_regenerate">重新生成密钥</string>
     <string name="pair_manual">手动输入配对码</string>
-    <string name="pair_manual_hint">配对码 / 预共享口令</string>
+    <string name="pair_manual_hint">配对码 / 配对链接 / pass:口令</string>
     <string name="pair_apply">应用</string>
     <string name="pair_success">已保存配对密钥（指纹 %1$s）</string>
     <string name="pair_invalid">配对码无效</string>
@@ -96,8 +96,6 @@
     <string name="settings_max_text_kb">文本上限 (KB)</string>
     <string name="settings_max_image_kb">图片上限 (KB)</string>
     <string name="settings_start_on_boot">开机自启</string>
-    <string name="settings_encryption_required">仅在已配对（加密）时同步</string>
-    <string name="settings_encryption_hint">关闭后允许明文同步，仅建议在可信网络下临时使用</string>
     <string name="settings_shizuku_poll_ms">Shizuku 轮询间隔 (ms)</string>
     <string name="settings_section_identity">身份与网络</string>
     <string name="settings_section_content">内容</string>
@@ -135,7 +133,6 @@
 
     <!-- 首页补充 -->
     <string name="home_encrypted">已加密 · AES-256-GCM · 指纹 %1$s</string>
-    <string name="home_plaintext">未配对：内容将以明文发送，仅建议在可信网络临时使用</string>
     <string name="home_unpaired">尚未配对：前往「配对」生成或扫描密钥后才会同步</string>
     <string name="home_last_source">最近一次成功读取：%1$s</string>
     <string name="home_pair_action">去配对</string>
@@ -160,12 +157,15 @@
     <string name="pair_grant_camera">授予相机权限</string>
     <string name="pair_forget">清除本机密钥</string>
     <string name="pair_uri_hint">也可以把这串文字发给电脑端粘贴</string>
+    <string name="pair_code_hint">配对码（在电脑端逐组输入，大小写和横线都不影响）</string>
+    <string name="pair_copy_code">复制配对码</string>
+    <string name="pair_code_copied">已复制配对码</string>
 
     <!-- 设置补充 -->
     <string name="settings_keystore_fallback">此设备的密钥库不可用，配对密钥以明文保存</string>
     <string name="settings_shizuku_pre_v11">检测到旧版 Shizuku，请在系统权限中授予 API 权限</string>
     <string name="settings_shizuku_polling">Shizuku 轮询监听</string>
-    <string name="settings_shizuku_polling_hint">仅 Shizuku 方案需要轮询；启用输入法或无障碍时可关闭</string>
+    <string name="settings_shizuku_polling_hint">Shizuku 授权后会自动读系统日志发现剪贴板变化，轮询只是兜底；启用输入法或无障碍时可关闭</string>
     <string name="settings_overlay_assist">无障碍悬浮窗辅助</string>
     <string name="settings_overlay_assist_hint">复制时瞬间闪现一个 1×1 悬浮窗以取得焦点，这是无障碍方案唯一的合法读取方式</string>
     <string name="settings_section_about">关于</string>
@@ -182,9 +182,8 @@
     <string name="devices_self">本机</string>
     <string name="devices_connected">已连接</string>
     <string name="devices_plaintext">未加密</string>
-    <string name="devices_fingerprint_mismatch">密钥指纹与本机不一致，无法解密</string>
+    <string name="devices_fingerprint_mismatch">配对码与本机不一致，双方无法建立连接</string>
     <string name="history_source">%1$s · %2$s · %3$s</string>
-    <string name="pair_no_qr">当前使用口令配对，无法生成二维码；请在电脑端输入同一口令。</string>
     <string name="pair_none">尚未生成密钥</string>
     <string name="pair_copy_uri">复制配对链接</string>
     <string name="pair_copied">已复制配对链接</string>
@@ -205,6 +204,38 @@
     <!-- 配对界面 -->
     <string name="pair_qr_image">配对二维码</string>
     <string name="pair_generate">生成密钥</string>
-    <string name="pair_regenerate_hint">重新生成后旧密钥立即失效，电脑端必须重新扫码或输入新的配对链接</string>
-    <string name="pair_manual_note">可以粘贴电脑端的配对链接、Base64 密钥，或两端约定的同一句口令</string>
+    <string name="pair_regenerate_hint">重新生成后旧密钥立即失效，电脑端必须重新扫码或输入新的配对码</string>
+    <string name="pair_manual_note">可以粘贴电脑端的配对链接、直接输入电脑端显示的配对码，或输入 pass: 加两端约定的同一句口令（至少 8 个字符）</string>
+
+    <!-- 诊断日志 -->
+    <string name="log_title">诊断日志</string>
+    <string name="log_search">搜索（内容或标签）</string>
+    <string name="log_filter_all">全部</string>
+    <string name="log_filter_problems">仅问题</string>
+    <string name="log_auto_scroll">自动滚动</string>
+    <string name="log_keep_trace">详细轮询</string>
+    <string name="log_include_content">记录剪贴板内容</string>
+    <string name="log_copy">复制</string>
+    <string name="log_share">导出日志</string>
+    <string name="log_share_subject">AirClip 诊断日志</string>
+    <string name="log_clear">清空</string>
+    <string name="log_copied">日志已复制到剪贴板</string>
+    <string name="log_share_failed">导出日志失败</string>
+    <string name="log_count">显示 %1$d 条 / 共 %2$d 条</string>
+    <string name="log_empty">暂无日志。打开「同步服务」并复制一段文字，这里就会出现读取过程。</string>
+    <string name="log_no_match">没有符合当前筛选条件的日志</string>
+    <string name="log_doctor">Shizuku 自检</string>
+    <string name="log_doctor_running">正在自检…</string>
+    <string name="log_doctor_result">自检结论</string>
+    <string name="log_doctor_crashed">自检本身出错了：%1$s</string>
+
+    <!-- 设置 · 诊断 -->
+    <string name="settings_section_diagnostics">诊断</string>
+    <string name="settings_doctor">Shizuku 自检</string>
+    <string name="settings_doctor_hint">依次检查 Shizuku 授权、辅助进程、剪贴板接口和轮询开关，并指出卡在哪一步。建议先复制一段文字再运行。</string>
+    <string name="settings_doctor_action">开始自检</string>
+    <string name="settings_log_entry">诊断日志</string>
+    <string name="settings_log_entry_hint">应用内查看每一次剪贴板读取与收发的完整过程，可复制或导出用于反馈</string>
+    <string name="settings_log_open">查看</string>
+    <string name="settings_backend_state">辅助进程自述</string>
 </resources>

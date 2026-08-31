@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using AirClip.App.Mvvm;
 using AirClip.App.Services;
+using AirClip.App.Views;
 using AirClip.Core.Clipboard;
 using AirClip.Crypto;
 
@@ -191,6 +193,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(PairingCodeDisplay));
                 OnPropertyChanged(nameof(PairingRevealLabel));
+                OnPropertyChanged(nameof(PairingQrImage));
             }
         }
     }
@@ -198,6 +201,27 @@ public sealed class MainViewModel : ObservableObject
     public string PairingCodeDisplay => IsPairingRevealed ? _host.Pairing.Code : MaskedCode;
 
     public string PairingRevealLabel => IsPairingRevealed ? "隐藏配对码" : "显示配对码";
+
+    /// <summary>
+    /// The invite the phone scans, or <see langword="null"/> while the code is masked. Gated on
+    /// <see cref="IsPairingRevealed"/> for exactly the same reason the code text is: the URI behind the code
+    /// carries <c>k=</c>, the group's shared secret, so a QR left on screen is the secret left on screen —
+    /// only in a form a camera across the room can read faster than a person could.
+    /// <para>
+    /// Rebuilt rather than cached, and it follows the saved device name, service name and port, since those
+    /// are the three fields the invite describes this machine with. It deliberately does not wait for
+    /// "重启网络": the phone takes the pairing code out of the invite and then finds this machine by
+    /// discovery, so a port that has been typed but not applied yet still leaves a scannable code.
+    /// </para>
+    /// </summary>
+    public BitmapSource? PairingQrImage => IsPairingRevealed
+        ? QrArtwork.TryRender(_host.Pairing
+            .CreateInvite(_host.Settings.DeviceName, _host.Settings.ServiceName, _host.Settings.ListenPort)
+            // OriginalString, not ToString(): ToString() hands back the display form, which un-escapes the
+            // percent-escapes in the device name, and a QR carrying raw 汉字 is a QR the phone has to guess
+            // the encoding of. OriginalString is the escaped ASCII both parsers were written against.
+            .ToUri().OriginalString)
+        : null;
 
     /// <summary>Where the code shown by another device gets typed or pasted, including an airclip:// URI.</summary>
     public string PairingCodeInput
@@ -217,8 +241,14 @@ public sealed class MainViewModel : ObservableObject
     public string DeviceName
     {
         get => _host.Settings.DeviceName;
-        set => Apply(_host.Settings.DeviceName, string.IsNullOrWhiteSpace(value) ? Environment.MachineName : value.Trim(),
-            v => _host.Settings.DeviceName = v, nameof(LocalEndpoint));
+        set
+        {
+            if (Apply(_host.Settings.DeviceName, string.IsNullOrWhiteSpace(value) ? Environment.MachineName : value.Trim(),
+                v => _host.Settings.DeviceName = v, nameof(LocalEndpoint)))
+            {
+                OnPropertyChanged(nameof(PairingQrImage));
+            }
+        }
     }
 
     /// <summary>
@@ -233,6 +263,7 @@ public sealed class MainViewModel : ObservableObject
             if (Apply(_host.Settings.ServiceName, value, v => _host.Settings.ServiceName = v))
             {
                 NoteRestartNeeded();
+                OnPropertyChanged(nameof(PairingQrImage));
             }
         }
     }
@@ -246,6 +277,7 @@ public sealed class MainViewModel : ObservableObject
                 v => _host.Settings.ListenPort = v, nameof(LocalEndpoint)))
             {
                 NoteRestartNeeded();
+                OnPropertyChanged(nameof(PairingQrImage));
             }
         }
     }
@@ -523,6 +555,7 @@ public sealed class MainViewModel : ObservableObject
         IsPairingRevealed = false;
         OnPropertyChanged(nameof(PairingFingerprint));
         OnPropertyChanged(nameof(PairingCodeDisplay));
+        OnPropertyChanged(nameof(PairingQrImage));
         StatusDetail = error is null
             ? $"{what}（指纹 {key.Fingerprint}），其他设备需要使用同一个配对码"
             : $"{what}，但{error}";

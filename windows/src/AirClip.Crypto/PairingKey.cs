@@ -12,6 +12,15 @@ namespace AirClip.Crypto;
 /// The AES-256 master key is derived from those bytes rather than being them, so the length of the code
 /// the user types and the length of the key the cipher wants stay independent of each other.
 /// </para>
+/// <para>
+/// This class is the reference implementation of a <em>cross-platform</em> contract; every constant below
+/// is mirrored by <c>com.airclip.core.crypto.PairingKey</c> on Android, and the two must agree
+/// byte-for-byte or the two ends compute different fingerprints and refuse to talk. Test vector, secret
+/// <c>00 01 02 … 13</c>: code <c>000G-40R4-0M30-E209-185G-R38E-1W81-24GK</c>, fingerprint
+/// <c>B4171D99</c>, master key <c>F161806B…713C3086</c>. That vector and the rest of the contract are
+/// pinned as frozen bytes by <c>CrossPlatformVectorTests</c>, which is the only thing here that a change
+/// on one side alone cannot pass.
+/// </para>
 /// </summary>
 public sealed class PairingKey
 {
@@ -19,6 +28,21 @@ public sealed class PairingKey
     public const int SecretSizeBytes = 20;
 
     public const int MasterKeySizeBytes = 32;
+
+    /// <summary>
+    /// Marks the rest of the input as a shared phrase rather than a pairing code. It is an explicit
+    /// prefix and not a fallback for "text that failed to parse": a scheme where any unrecognised string
+    /// silently becomes a group key turns one typo into a device that pairs with nothing and reports no
+    /// error, which is precisely the failure this prefix exists to prevent. The Android client accepts
+    /// the same prefix.
+    /// </summary>
+    public const string PassphrasePrefix = "pass:";
+
+    /// <summary>PBKDF2 rounds for <see cref="FromPassphrase"/>; part of the cross-platform contract.</summary>
+    public const int PassphraseIterations = 200_000;
+
+    /// <summary>Short enough to be memorable, long enough that stretching it is not a formality.</summary>
+    public const int MinPassphraseLength = 8;
 
     private const string Alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     private const int GroupSize = 4;
@@ -62,8 +86,29 @@ public sealed class PairingKey
     }
 
     /// <summary>
+    /// Stretches a phrase the user typed on both devices into the same twenty bytes a random code would
+    /// have supplied, so everything downstream — master key, fingerprint, handshake — is unaware of which
+    /// of the two pairing styles was used. PBKDF2 rather than HKDF because a human phrase has nothing like
+    /// 160 bits of entropy and stretching is the only thing standing between it and a dictionary.
+    /// </summary>
+    public static PairingKey FromPassphrase(string passphrase)
+    {
+        ArgumentNullException.ThrowIfNull(passphrase);
+        string phrase = passphrase.Trim();
+        if (phrase.Length < MinPassphraseLength)
+        {
+            throw new ArgumentException($"共享口令至少需要 {MinPassphraseLength} 个字符", nameof(passphrase));
+        }
+
+        byte[] secret = Rfc2898DeriveBytes.Pbkdf2(
+            Encoding.UTF8.GetBytes(phrase), Salt, PassphraseIterations, HashAlgorithmName.SHA256, SecretSizeBytes);
+        return new PairingKey(secret);
+    }
+
+    /// <summary>
     /// Accepts what a user is likely to hand over: the grouped code, the same code without separators or
-    /// in lower case, or a whole <c>airclip://pair?…</c> invite pasted from a QR scan.
+    /// in lower case, a whole <c>airclip://pair?…</c> invite pasted from a QR scan, or a shared phrase
+    /// behind the explicit <see cref="PassphrasePrefix"/> marker.
     /// </summary>
     public static bool TryParse(string? text, out PairingKey? key)
     {
@@ -74,6 +119,18 @@ public sealed class PairingKey
         }
 
         string candidate = text.Trim();
+        if (candidate.StartsWith(PassphrasePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            string phrase = candidate[PassphrasePrefix.Length..].Trim();
+            if (phrase.Length < MinPassphraseLength)
+            {
+                return false;
+            }
+
+            key = FromPassphrase(phrase);
+            return true;
+        }
+
         if (candidate.Contains("://", StringComparison.Ordinal))
         {
             if (!PairingInvite.TryParse(candidate, out PairingInvite? invite))

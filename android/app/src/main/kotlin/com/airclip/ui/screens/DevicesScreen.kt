@@ -100,8 +100,8 @@ private fun PeerCard(
             }
         }
 
-        // A TXT fingerprint that differs from ours means the two sides derived different AES keys;
-        // the socket will connect and every frame will then fail to open.
+        // A TXT fingerprint that differs from ours means the two sides hold different secrets, and the
+        // handshake will refuse the connection rather than half-forming one.
         val remote = peer.remoteFingerprint
         if (remote != null && localFingerprint != null && !remote.equals(localFingerprint, ignoreCase = true)) {
             Text(

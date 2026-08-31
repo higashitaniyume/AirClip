@@ -37,11 +37,19 @@ import com.airclip.ui.components.requestTile
  * than being rejected with an error the field would have to explain.
  */
 @Composable
-fun SettingsScreen(vm: MainViewModel, onPair: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsScreen(
+    vm: MainViewModel,
+    onPair: () -> Unit,
+    onLog: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val settings by vm.settings.collectAsState()
     val shizuku by vm.shizuku.collectAsState()
     val plaintextVault by vm.usesPlaintextVault.collectAsState()
+    val diagnostics by vm.shizukuDiagnostics.collectAsState()
+    val doctorResult by vm.doctorResult.collectAsState()
+    val doctorRunning by vm.doctorRunning.collectAsState()
 
     Column(
         modifier = modifier
@@ -139,12 +147,8 @@ fun SettingsScreen(vm: MainViewModel, onPair: () -> Unit, modifier: Modifier = M
         }
 
         SectionCard(title = stringResource(R.string.settings_section_security)) {
-            SettingSwitch(
-                label = stringResource(R.string.settings_encryption_required),
-                hint = stringResource(R.string.settings_encryption_hint),
-                checked = settings.requireEncryption,
-                onCheckedChange = { on -> vm.update { it.copy(requireEncryption = on) } },
-            )
+            // No "require encryption" switch: encryption is not optional. A link that cannot complete
+            // the handshake carries nothing, so there is no setting left to offer.
             ActionRow(
                 label = stringResource(R.string.settings_pair_entry),
                 hint = stringResource(R.string.pair_qr_hint),
@@ -202,6 +206,38 @@ fun SettingsScreen(vm: MainViewModel, onPair: () -> Unit, modifier: Modifier = M
                     }
                 },
             )
+        }
+
+        // Directly under 后台读取, because everything in it exists to explain why that card's
+        // switches have not produced a single clipboard read.
+        SectionCard(title = stringResource(R.string.settings_section_diagnostics)) {
+            ActionRow(
+                label = stringResource(R.string.settings_doctor),
+                hint = stringResource(R.string.settings_doctor_hint),
+                action = stringResource(
+                    if (doctorRunning) R.string.log_doctor_running else R.string.settings_doctor_action,
+                ),
+                // Re-entry is guarded in the view model, so a second tap while running is a no-op.
+                onClick = vm::runShizukuDoctor,
+            )
+            // The verdict belongs on the screen the user was already on: it names the one step that
+            // failed, and that is usually the whole answer.
+            doctorResult?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            ActionRow(
+                label = stringResource(R.string.settings_log_entry),
+                hint = stringResource(R.string.settings_log_entry_hint),
+                action = stringResource(R.string.settings_log_open),
+                onClick = onLog,
+            )
+            // What the helper process says about itself. `未解析`/`缺失` here is the answer on ROMs
+            // that ship a replaced ClipboardService, which no other screen can show.
+            if (diagnostics.isNotBlank()) {
+                Text(
+                    text = stringResource(R.string.settings_backend_state),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Hint(diagnostics)
+            }
         }
 
         SectionCard(title = stringResource(R.string.settings_section_about)) {

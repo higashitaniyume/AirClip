@@ -2,7 +2,7 @@ package com.airclip.platform.net
 
 import android.content.Context
 import com.airclip.core.clipboard.ClipContent
-import com.airclip.core.crypto.CryptoBox
+import com.airclip.core.crypto.PairingKey
 import com.airclip.core.net.ReceivedContent
 import com.airclip.core.net.SyncPeer
 import com.airclip.core.net.SyncTransport
@@ -46,6 +46,10 @@ import io.ktor.client.plugins.websocket.WebSockets as ClientWebSockets
  * connection; the tie-break is lexicographic on device id (lower id dials), with a fallback timer so
  * a peer that never dials still gets connected. Duplicate links to the same device are closed on
  * arrival, keyed by the id from the handshake.
+ *
+ * [keyProvider] is read per connection rather than captured, so re-pairing takes effect on the next
+ * dial instead of needing the transport restarted. A null key means the device is not paired, and
+ * every link then fails its handshake — there is no unencrypted mode to fall back to.
  */
 class AirClipTransport(
     context: Context,
@@ -53,8 +57,7 @@ class AirClipTransport(
     private val identity: () -> DeviceIdentity,
     private val listenPort: () -> Int,
     private val serviceType: () -> String,
-    private val cryptoProvider: () -> CryptoBox?,
-    private val requireEncryption: () -> Boolean,
+    private val keyProvider: () -> PairingKey?,
 ) : SyncTransport {
 
     private val discovery = NsdDiscovery(context, scope, serviceType)
@@ -115,7 +118,7 @@ class AirClipTransport(
         _isListening.value = true
         _status.value = "正在监听 :$port"
 
-        discovery.register(identity(), port, cryptoProvider()?.fingerprint)
+        discovery.register(identity(), port, keyProvider()?.fingerprint)
         discovery.startDiscovery()
 
         reconciler = scope.launch { reconcileLoop() }
@@ -192,7 +195,7 @@ class AirClipTransport(
      * peer can be registered while the loop is already running.
      */
     private suspend fun serve(session: WebSocketSession, dialedByUs: Boolean, host: String, port: Int) {
-        val link = PeerLink(session, identity(), cryptoProvider, requireEncryption, host, port, dialedByUs)
+        val link = PeerLink(session, identity(), keyProvider, host, port, dialedByUs)
         val registeredId = AtomicReference<String?>(null)
 
         val registration = scope.launch {
@@ -223,6 +226,10 @@ class AirClipTransport(
             link.run { content, from ->
                 _received.emit(ReceivedContent(content, from.id, from.name, link.isEncrypted))
             }
+        } catch (e: PeerHandshakeException) {
+            // Worth showing verbatim: it names the reason the peer refused us, which is usually a
+            // pairing-code mismatch the user can fix.
+            _status.value = e.message ?: "握手失败"
         } catch (e: Exception) {
             // Any transport-level failure ends the link; the reconciler will dial again later.
             _status.value = "连接中断：${e.message ?: e::class.java.simpleName}"
@@ -293,7 +300,7 @@ class AirClipTransport(
     private fun publishPeers() {
         val connected = links.toMap()
         val discovered = discovery.services.value.associateBy { it.deviceId }
-        val localFingerprint = cryptoProvider()?.fingerprint
+        val localFingerprint = keyProvider()?.fingerprint
 
         val merged = LinkedHashMap<String, SyncPeer>()
         for ((id, service) in discovered) {
@@ -308,7 +315,10 @@ class AirClipTransport(
                 isConnected = link != null,
                 roundTripMillis = link?.roundTripMillis,
                 remoteFingerprint = service.fingerprint,
-                isPaired = localFingerprint != null && localFingerprint == service.fingerprint,
+                // Case-insensitively, per the TXT record's contract: it is a hint for the UI, and the
+                // handshake is what actually decides whether the secrets match.
+                isPaired = localFingerprint != null &&
+                    localFingerprint.equals(service.fingerprint, ignoreCase = true),
                 isEncrypted = link?.isEncrypted == true,
             )
         }

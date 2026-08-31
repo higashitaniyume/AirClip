@@ -23,7 +23,9 @@ namespace AirClip.App;
 /// <para>
 /// Since stage three the network is real too: a second <see cref="SyncHub"/> in this process connects
 /// over a loopback WebSocket, so the handshake, AES-256-GCM and both directions of the wire are covered
-/// by the same run. It also checks that the pairing secret on disk is a DPAPI blob and not the code.
+/// by the same run. It also checks that the pairing secret on disk is a DPAPI blob and not the code, and
+/// that the pairing QR on screen decodes back to this machine's invite — the phone's camera is the one
+/// part of pairing that cannot be exercised from here, so the pixels are read back instead.
 /// </para>
 /// It prints the idle footprint as well, which is the one spec number WPF genuinely strains against.
 /// </summary>
@@ -70,6 +72,7 @@ public partial class App
 
             await CheckRemoteApplyAsync(failures);
             CheckPairingAtRest(failures);
+            CheckPairingQr(failures);
             twin = await CheckTwinPeerAsync(failures);
             CheckTray(failures);
             CheckBindings(collector, failures);
@@ -268,6 +271,84 @@ public partial class App
         WriteDiagnostic(
             $"PASS  配对密钥以 DPAPI 密文存放（{onDisk.Length} 字节，指纹 {reloaded.Fingerprint}），"
             + "文件里搜不到配对码或原始密钥");
+    }
+
+    /// <summary>
+    /// The QR the phone points a camera at. Having drawn something square and black and white proves nothing,
+    /// so this reads the pixels back with ZXing's decoder — the same library, and the same code path, that the
+    /// Android app scans with — and insists on getting the invite URI out again character for character.
+    /// <para>
+    /// It also checks the masking promise in both directions: hidden means no bitmap at all, not a bitmap that
+    /// the window happens not to be showing. And the reveal is undone before the tabs are photographed on
+    /// purpose — a screenshot of a QR is a copy of the group secret in a PNG, which is the one thing
+    /// <see cref="CheckPairingAtRest"/> spends its whole length proving does not happen.
+    /// </para>
+    /// </summary>
+    private void CheckPairingQr(List<string> failures)
+    {
+        _viewModel!.IsPairingRevealed = false;
+        if (_viewModel.PairingQrImage is not null)
+        {
+            failures.Add("配对码处于隐藏状态时仍然渲染了二维码");
+            return;
+        }
+
+        _viewModel.IsPairingRevealed = true;
+        try
+        {
+            if (_viewModel.PairingQrImage is not { } qr)
+            {
+                failures.Add("显示配对码后没有渲染出二维码");
+                return;
+            }
+
+            if (qr.Format != PixelFormats.Gray8 || qr.PixelWidth != qr.PixelHeight || qr.PixelWidth < 21)
+            {
+                failures.Add($"二维码位图不对：{qr.Format}，{qr.PixelWidth}×{qr.PixelHeight}");
+                return;
+            }
+
+            string expected = _host!.Pairing
+                .CreateInvite(_host.Settings.DeviceName, _host.Settings.ServiceName, _host.Settings.ListenPort)
+                .ToUri().OriginalString;
+            int side = qr.PixelWidth;
+            byte[] pixels = new byte[side * side];
+            qr.CopyPixels(pixels, side, 0);
+
+            var reader = new ZXing.BarcodeReaderGeneric();
+            reader.Options.PossibleFormats = [ZXing.BarcodeFormat.QR_CODE];
+            reader.Options.TryHarder = true;
+            ZXing.Result? decoded = reader.Decode(pixels, side, side, ZXing.RGBLuminanceSource.BitmapFormat.Gray8);
+
+            // Never the text itself, in either branch: this file is written to disk, and the invite is the
+            // secret. Lengths and the fingerprint are enough to tell a wrong code from an unreadable one.
+            if (decoded is null)
+            {
+                failures.Add($"二维码 {side}×{side} 解不出内容，手机大概也扫不出来");
+                return;
+            }
+
+            if (!string.Equals(decoded.Text, expected, StringComparison.Ordinal))
+            {
+                failures.Add($"二维码解出的内容与配对邀请不一致（解出 {decoded.Text.Length} 字符，邀请 {expected.Length} 字符）");
+                return;
+            }
+
+            if (!AirClip.Crypto.PairingInvite.TryParse(decoded.Text, out AirClip.Crypto.PairingInvite? invite)
+                || invite!.Key.Fingerprint != _host.Pairing.Fingerprint)
+            {
+                failures.Add("二维码里的邀请解析不回同一把配对密钥");
+                return;
+            }
+
+            WriteDiagnostic(
+                $"PASS  配对二维码 {side}×{side} 被 ZXing 解回同一条邀请"
+                + $"（指纹 {invite.Key.Fingerprint}，设备名 {invite.DeviceName}，端口 {invite.Port}）");
+        }
+        finally
+        {
+            _viewModel.IsPairingRevealed = false;
+        }
     }
 
     /// <summary>

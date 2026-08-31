@@ -1,69 +1,26 @@
 package com.airclip.core.crypto
 
-import java.security.MessageDigest
-import java.security.SecureRandom
 import javax.crypto.Mac
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * How a pairing secret becomes the AES-256 session key. This is a cross-platform contract; the
- * Windows client must reproduce it exactly (`System.Security.Cryptography.HKDF.DeriveKey` and
- * `Rfc2898DeriveBytes.Pbkdf2` are the .NET equivalents of the two branches below).
+ * The three key-derivation primitives AirClip needs, and nothing about what they are used for — the
+ * protocol's salts, info strings and lengths all live in [PairingKey], so there is exactly one place
+ * to compare against the Windows client.
  *
- *  - QR / raw key  : HKDF-SHA256(ikm = 32 random bytes, salt = SALT, info = INFO, L = 32)
- *  - passphrase    : PBKDF2-HMAC-SHA256(password, salt = SALT, iterations = 200_000, L = 32)
- *
- * The branches differ on purpose: a random 256-bit key needs no stretching, a human passphrase does.
+ * HKDF and PBKDF2 are both written out by hand: `javax.crypto.KDF` does not exist on Android, and the
+ * JCA's PBKDF2 leaves the password's character encoding up to the provider. Both are built on the same
+ * `HmacSHA256`, which every Android release has.
  */
-object KeyDerivation {
-    const val KEY_SIZE_BYTES = 32
-    const val PASSPHRASE_ITERATIONS = 200_000
+internal object KeyDerivation {
 
-    private val SALT = "airclip/psk-v1".toByteArray(Charsets.US_ASCII)
-    private val INFO = "airclip/aes-256-gcm/v1".toByteArray(Charsets.US_ASCII)
-    private val FINGERPRINT_DOMAIN = "airclip/fp1".toByteArray(Charsets.US_ASCII)
-
-    private val random = SecureRandom()
-
-    fun randomKeyMaterial(): ByteArray = ByteArray(KEY_SIZE_BYTES).also(random::nextBytes)
-
-    fun deriveFromKeyMaterial(material: ByteArray): SecretKeySpec {
-        require(material.isNotEmpty()) { "key material must not be empty" }
-        return SecretKeySpec(hkdfSha256(material, SALT, INFO, KEY_SIZE_BYTES), "AES")
-    }
-
-    fun deriveFromPassphrase(passphrase: String): SecretKeySpec {
-        require(passphrase.isNotBlank()) { "passphrase must not be blank" }
-        val spec = PBEKeySpec(passphrase.toCharArray(), SALT, PASSPHRASE_ITERATIONS, KEY_SIZE_BYTES * 8)
-        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        return try {
-            SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
-        } finally {
-            spec.clearPassword()
-        }
-    }
-
-    /**
-     * Short, human-comparable tag for a derived key: SHA-256("airclip/fp1" || key), first 8 hex
-     * chars. Domain-separated and truncated so publishing it in an mDNS TXT record leaks as little
-     * as possible about the key itself.
-     */
-    fun fingerprint(key: SecretKeySpec): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(FINGERPRINT_DOMAIN)
-        digest.update(key.encoded)
-        return Codecs.toHex(digest.digest()).take(8)
-    }
-
-    /** RFC 5869 HKDF-SHA256. Written out because `javax.crypto.KDF` is not on Android. */
-    private fun hkdfSha256(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(salt, "HmacSHA256"))
+    /** RFC 5869 HKDF-SHA256, equivalent to .NET's `HKDF.DeriveKey(HashAlgorithmName.SHA256, …)`. */
+    fun hkdfSha256(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
+        val mac = Mac.getInstance(HMAC_SHA256)
+        mac.init(SecretKeySpec(salt, HMAC_SHA256))
         val prk = mac.doFinal(ikm)
 
-        mac.init(SecretKeySpec(prk, "HmacSHA256"))
+        mac.init(SecretKeySpec(prk, HMAC_SHA256))
         val out = ByteArray(length)
         var previous = ByteArray(0)
         var offset = 0
@@ -80,4 +37,46 @@ object KeyDerivation {
         }
         return out
     }
+
+    /**
+     * PBKDF2-HMAC-SHA256, equivalent to .NET's `Rfc2898DeriveBytes.Pbkdf2` over the phrase's UTF-8
+     * bytes. Written out rather than handed to `SecretKeyFactory` on purpose: the JCA API takes a
+     * `char[]` and leaves the character encoding to the provider, and BouncyCastle ships both a UTF-8
+     * and an 8-bit-per-character variant of PBKDF2. Picking up the wrong one derives a different secret
+     * from the same phrase — silently, and for any phrase with a non-ASCII character in it, which for a
+     * 中文 口令 is every one of them. Twelve lines of RFC 2898 buys certainty about which bytes are hashed.
+     */
+    fun pbkdf2Sha256(passphrase: String, salt: ByteArray, iterations: Int, length: Int): ByteArray {
+        val mac = Mac.getInstance(HMAC_SHA256)
+        mac.init(SecretKeySpec(passphrase.toByteArray(Charsets.UTF_8), HMAC_SHA256))
+
+        val out = ByteArray(length)
+        var offset = 0
+        var block = 1
+        while (offset < length) {
+            mac.update(salt)
+            mac.update(byteArrayOf((block ushr 24).toByte(), (block ushr 16).toByte(), (block ushr 8).toByte(), block.toByte()))
+
+            var u = mac.doFinal()
+            val folded = u.copyOf()
+            for (round in 2..iterations) {
+                u = mac.doFinal(u)
+                for (i in folded.indices) folded[i] = (folded[i].toInt() xor u[i].toInt()).toByte()
+            }
+
+            val take = minOf(folded.size, length - offset)
+            folded.copyInto(out, offset, 0, take)
+            offset += take
+            block++
+        }
+        return out
+    }
+
+    fun hmacSha256(key: ByteArray, message: ByteArray): ByteArray {
+        val mac = Mac.getInstance(HMAC_SHA256)
+        mac.init(SecretKeySpec(key, HMAC_SHA256))
+        return mac.doFinal(message)
+    }
+
+    private const val HMAC_SHA256 = "HmacSHA256"
 }

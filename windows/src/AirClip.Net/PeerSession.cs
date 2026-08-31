@@ -492,16 +492,22 @@ public sealed class PeerSession : IDisposable
     private static Task SendFrameAsync(WebSocket socket, byte[] frame, CancellationToken cancellationToken) =>
         socket.SendAsync(frame, WebSocketMessageType.Binary, endOfMessage: true, cancellationToken);
 
+    /// <summary>
+    /// Reads one handshake frame, and names the two ways it can fail apart from each other. They look
+    /// identical in a log otherwise, and they mean opposite things: a close is a peer that refused us
+    /// before saying anything — usually because it is not paired and hung up rather than answering — while
+    /// a text frame is a peer that skipped the handshake entirely and started sending clipboard JSON.
+    /// </summary>
     private static async Task<byte[]> ReadFrameAsync(WebSocket socket, CancellationToken cancellationToken)
     {
         (WebSocketMessageType type, byte[] payload) =
             await ReceiveAsync(socket, cancellationToken).ConfigureAwait(false);
-        if (type != WebSocketMessageType.Binary)
+        return type switch
         {
-            throw new PeerHandshakeException("握手阶段收到了非二进制帧");
-        }
-
-        return payload;
+            WebSocketMessageType.Binary => payload,
+            WebSocketMessageType.Close => throw new PeerHandshakeException("对端在握手完成前关闭了连接"),
+            _ => throw new PeerHandshakeException("对端跳过握手直接发送了报文，可能仍在运行旧版本"),
+        };
     }
 
     private static async Task<(WebSocketMessageType Type, byte[] Payload)> ReceiveAsync(

@@ -6,4 +6,9 @@
     <cache-path
         name="clips"
         path="clips/" />
+    <!-- 诊断日志 leaves the app through a share sheet, which needs a URI rather than a string:
+         a full buffer is well over the transaction limit for EXTRA_TEXT. -->
+    <cache-path
+        name="logs"
+        path="logs/" />
 </paths>

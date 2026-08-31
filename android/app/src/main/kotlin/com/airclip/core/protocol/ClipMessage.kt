@@ -15,6 +15,13 @@ object ProtocolConstants {
     const val ENCODING_UTF8 = "utf-8"
     const val ENCODING_BASE64 = "base64"
 
+    /**
+     * Marks a payload whose `content` is base64 of `nonce || ciphertext || tag` instead of the clipboard
+     * data itself. It occupies the same `encoding` field as the cleartext values, so the wire schema is
+     * unchanged and a peer that does not know the value simply fails to read the message.
+     */
+    const val ENCODING_AES_GCM = "aes-256-gcm"
+
     /** `NsdManager` wants the two-label form; the full name on the wire is `_airclip._tcp.local.`. */
     const val SERVICE_TYPE = "_airclip._tcp."
     const val DEFAULT_PORT = 47653
@@ -28,7 +35,11 @@ object ProtocolConstants {
     const val TXT_PLATFORM = "plat"
     const val TXT_VERSION = "ver"
 
-    /** First 8 hex chars of SHA-256 over the pairing key: lets a peer spot a key mismatch early. */
+    /**
+     * The pairing fingerprint from `PairingKey.fingerprint`: eight upper-case hex characters, published
+     * so a peer can spot a key mismatch before the handshake rather than after. Compare it
+     * case-insensitively — it is a courtesy for diagnosis, not the thing that proves a shared secret.
+     */
     const val TXT_KEY_FINGERPRINT = "fp"
 }
 

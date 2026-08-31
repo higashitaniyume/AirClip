@@ -98,10 +98,11 @@ fun HomeScreen(vm: MainViewModel, onPair: () -> Unit, modifier: Modifier = Modif
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val paired = when {
-                    print != null -> stringResource(R.string.home_encrypted, print)
-                    settings.requireEncryption -> stringResource(R.string.home_unpaired)
-                    else -> stringResource(R.string.home_plaintext)
+                val paired = if (print != null) {
+                    stringResource(R.string.home_encrypted, print)
+                } else {
+                    // There is no unencrypted mode to describe: without a key nothing connects at all.
+                    stringResource(R.string.home_unpaired)
                 }
                 Hint(paired, modifier = Modifier.weight(1f))
                 if (print == null) {

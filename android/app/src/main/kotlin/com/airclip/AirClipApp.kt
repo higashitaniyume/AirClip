@@ -2,6 +2,10 @@ package com.airclip
 
 import android.app.Application
 import android.content.Context
+import android.os.Build
+import android.os.Process
+import com.airclip.core.diag.AirClipLog
+import com.airclip.core.diag.LogTag
 import com.airclip.runtime.AirClipRuntime
 import com.airclip.service.SyncNotifications
 
@@ -17,6 +21,15 @@ class AirClipApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // First line in the buffer, and the one the reader of a bug report needs before any other:
+        // the ring buffer is per-process, so the pid says whether a later line came from the app or
+        // from a second process that also loaded this Application.
+        AirClipLog.section(LogTag.APP, "进程启动")
+        AirClipLog.i(
+            LogTag.APP,
+            "AirClip ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.SDK_INT} · " +
+                "${Build.MANUFACTURER}/${Build.MODEL} · pid=${Process.myPid()}",
+        )
         runtime = AirClipRuntime(this)
         // Channels must exist before the service posts its first notification, which can happen
         // before any UI is created (boot, tile tap).

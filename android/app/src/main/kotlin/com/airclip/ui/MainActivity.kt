@@ -42,6 +42,7 @@ import com.airclip.R
 import com.airclip.ui.screens.DevicesScreen
 import com.airclip.ui.screens.HistoryScreen
 import com.airclip.ui.screens.HomeScreen
+import com.airclip.ui.screens.LogScreen
 import com.airclip.ui.screens.PairScreen
 import com.airclip.ui.screens.SettingsScreen
 import com.airclip.ui.theme.AirClipTheme
@@ -118,6 +119,10 @@ private enum class Destination(
 }
 
 private const val ROUTE_PAIR = "pair"
+private const val ROUTE_LOG = "log"
+
+/** Detail routes: reached from another screen, so they get a back arrow and no bottom bar. */
+private val DETAIL_ROUTES = setOf(ROUTE_PAIR, ROUTE_LOG)
 
 @StringRes
 private fun titleFor(route: String?): Int = when (route) {
@@ -125,6 +130,7 @@ private fun titleFor(route: String?): Int = when (route) {
     Destination.HISTORY.route -> R.string.nav_history
     Destination.SETTINGS.route -> R.string.nav_settings
     ROUTE_PAIR -> R.string.pair_title
+    ROUTE_LOG -> R.string.log_title
     else -> R.string.app_name
 }
 
@@ -150,7 +156,7 @@ private fun AirClipRoot(vm: MainViewModel, pairingLinks: SharedFlow<String>) {
             TopAppBar(
                 title = { Text(stringResource(titleFor(route))) },
                 navigationIcon = {
-                    if (route == ROUTE_PAIR) {
+                    if (route in DETAIL_ROUTES) {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_close))
                         }
@@ -172,7 +178,7 @@ private fun AirClipRoot(vm: MainViewModel, pairingLinks: SharedFlow<String>) {
             )
         },
         bottomBar = {
-            if (route != ROUTE_PAIR) {
+            if (route !in DETAIL_ROUTES) {
                 BottomBar(current = route) { target ->
                     navController.navigate(target) {
                         // The four tabs are siblings, not a stack: keep one entry and restore state.
@@ -196,9 +202,14 @@ private fun AirClipRoot(vm: MainViewModel, pairingLinks: SharedFlow<String>) {
             composable(Destination.DEVICES.route) { DevicesScreen(vm = vm) }
             composable(Destination.HISTORY.route) { HistoryScreen(vm = vm) }
             composable(Destination.SETTINGS.route) {
-                SettingsScreen(vm = vm, onPair = { navController.navigate(ROUTE_PAIR) })
+                SettingsScreen(
+                    vm = vm,
+                    onPair = { navController.navigate(ROUTE_PAIR) },
+                    onLog = { navController.navigate(ROUTE_LOG) },
+                )
             }
             composable(ROUTE_PAIR) { PairScreen(vm = vm) }
+            composable(ROUTE_LOG) { LogScreen(vm = vm) }
         }
     }
 }

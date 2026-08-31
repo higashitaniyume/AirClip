@@ -41,15 +41,16 @@ import com.airclip.ui.components.QrScanner
 import com.airclip.ui.components.SectionCard
 
 /**
- * Getting the same 32 bytes onto both machines, three ways: let the PC scan this device's code, scan
- * the PC's, or type the link / key / passphrase by hand. Everything goes through the key vault, so a
- * new key takes effect on the running service without a restart.
+ * Getting the same pairing secret onto both machines, three ways: let the PC scan this device's QR
+ * code, scan the PC's, or type the code / link / `pass:` phrase by hand. Everything goes through the
+ * key vault, so a new key takes effect on the running service without a restart.
  */
 @Composable
 fun PairScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val fingerprint by vm.fingerprint.collectAsState()
     val uri by vm.pairingUri.collectAsState()
+    val pairingCode by vm.pairingCode.collectAsState()
 
     var scanning by remember { mutableStateOf(false) }
     var manual by remember { mutableStateOf("") }
@@ -76,21 +77,26 @@ fun PairScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
             // Delegated properties cannot be smart-cast, hence the local copies here and below.
             val link = uri
             val print = fingerprint
-            when {
-                link != null -> {
-                    QrCode(link, modifier = Modifier.align(Alignment.CenterHorizontally))
-                    Hint(stringResource(R.string.pair_uri_hint))
-                    // Selectable, so the link can be shared without the copy button touching the
-                    // clipboard at all.
-                    SelectionContainer {
-                        Text(link, style = MaterialTheme.typography.bodySmall)
-                    }
+            val code = pairingCode
+            if (link != null) {
+                QrCode(link, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Hint(stringResource(R.string.pair_uri_hint))
+                // Selectable, so the link can be shared without the copy button touching the
+                // clipboard at all.
+                SelectionContainer {
+                    Text(link, style = MaterialTheme.typography.bodySmall)
                 }
+            } else {
+                Hint(stringResource(R.string.pair_none))
+            }
 
-                // A passphrase is not 32 bytes of key material, so there is nothing to encode.
-                print != null -> Hint(stringResource(R.string.pair_no_qr))
-
-                else -> Hint(stringResource(R.string.pair_none))
+            // The code is what makes this work with a desktop that has no camera, which is most of
+            // them; a passphrase pairing has one too, because it stretches to the same secret.
+            code?.let {
+                Hint(stringResource(R.string.pair_code_hint))
+                SelectionContainer {
+                    Text(it, style = MaterialTheme.typography.titleMedium)
+                }
             }
 
             print?.let {
@@ -106,6 +112,11 @@ fun PairScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
             ) {
                 Button(onClick = { vm.generateKey() }) {
                     Text(stringResource(if (print == null) R.string.pair_generate else R.string.pair_regenerate))
+                }
+                code?.let {
+                    TextButton(onClick = { vm.copyPairingCode(it) }) {
+                        Text(stringResource(R.string.pair_copy_code))
+                    }
                 }
                 if (link != null) {
                     TextButton(onClick = { vm.copyPairingLink(link) }) {

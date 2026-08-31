@@ -9,8 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.airclip.core.crypto.CryptoBox
-import com.airclip.core.crypto.KeyDerivation
+import com.airclip.core.crypto.PairingKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,22 +31,26 @@ import javax.crypto.spec.GCMParameterSpec
 private val Context.secretsDataStore: DataStore<Preferences> by preferencesDataStore(name = "airclip_secrets")
 
 /**
- * The pairing secret as the user supplied it. Which branch it is decides how it becomes an AES key,
- * so the branch has to be stored alongside the bytes — see `KeyDerivation`.
+ * The pairing secret as the user supplied it. Which branch it is decides how it becomes a
+ * [PairingKey], so the branch has to be stored alongside the bytes.
  *
- * [cryptoBox] on a [Passphrase] runs 200 000 PBKDF2 rounds; never call it on the main thread.
+ * A phrase is kept as a phrase rather than as the twenty bytes it stretches to: the UI can then say
+ * how this device was paired, and a phrase paired before the protocol changed keeps working. The price
+ * is 200 000 PBKDF2 rounds every time [pairingKey] is called, so call it once and keep the result —
+ * never on the main thread.
  */
 sealed interface PairingSecret {
-    fun cryptoBox(): CryptoBox
+    /** `null` for stored bytes this build can no longer make sense of; the user has to pair again. */
+    fun pairingKey(): PairingKey?
 
-    /** 32 random bytes, from a pairing QR code or generated here. */
+    /** The twenty bytes behind a pairing code, generated here or taken from another device. */
     class RawKey(val material: ByteArray) : PairingSecret {
-        override fun cryptoBox(): CryptoBox = CryptoBox.fromKeyMaterial(material)
+        override fun pairingKey(): PairingKey? = PairingKey.fromSecret(material)
     }
 
     /** A pre-shared phrase typed on both devices. */
     class Passphrase(val text: String) : PairingSecret {
-        override fun cryptoBox(): CryptoBox = CryptoBox.fromPassphrase(text)
+        override fun pairingKey(): PairingKey? = PairingKey.fromPassphrase(text)
     }
 }
 
@@ -73,13 +76,26 @@ class KeyVault(context: Context) {
 
     suspend fun current(): PairingSecret? = withContext(Dispatchers.IO) { secret.first() }
 
-    suspend fun generate(): PairingSecret.RawKey = save(PairingSecret.RawKey(KeyDerivation.randomKeyMaterial()))
+    suspend fun generate(): PairingSecret.RawKey =
+        save(PairingSecret.RawKey(PairingKey.create().exportSecret()))
 
-    suspend fun saveKeyMaterial(material: ByteArray): PairingSecret? =
-        if (material.size == KeyDerivation.KEY_SIZE_BYTES) save(PairingSecret.RawKey(material)) else null
+    /**
+     * Stores whatever the user handed over — a typed pairing code, a scanned `airclip://pair` invite, or
+     * a phrase behind the [PairingKey.PASSPHRASE_PREFIX] marker — and returns `null` if none of those is
+     * what it is. Validation lives here so a bad code is refused before it is written, rather than
+     * becoming a device that pairs with nothing.
+     */
+    suspend fun saveText(text: String): PairingSecret? = withContext(Dispatchers.IO) {
+        val candidate = text.trim()
+        if (candidate.startsWith(PairingKey.PASSPHRASE_PREFIX, ignoreCase = true)) {
+            val phrase = candidate.substring(PairingKey.PASSPHRASE_PREFIX.length).trim()
+            if (PairingKey.fromPassphrase(phrase) == null) return@withContext null
+            return@withContext save(PairingSecret.Passphrase(phrase))
+        }
 
-    suspend fun savePassphrase(text: String): PairingSecret? =
-        if (text.isNotBlank()) save(PairingSecret.Passphrase(text.trim())) else null
+        val key = PairingKey.parse(candidate) ?: return@withContext null
+        save(PairingSecret.RawKey(key.exportSecret()))
+    }
 
     suspend fun clear() {
         store.edit { preferences ->
@@ -108,7 +124,9 @@ class KeyVault(context: Context) {
         val plain = open(envelope) ?: return null
         return when (preferences[Keys.mode]) {
             MODE_PASSPHRASE -> PairingSecret.Passphrase(plain.toString(Charsets.UTF_8))
-            else -> if (plain.size == KeyDerivation.KEY_SIZE_BYTES) PairingSecret.RawKey(plain) else null
+            // A secret of the wrong length is one written by an older build, which used a different
+            // pairing scheme entirely. Treated as unpaired: those bytes cannot be salvaged.
+            else -> if (plain.size == PairingKey.SECRET_SIZE_BYTES) PairingSecret.RawKey(plain) else null
         }
     }
 

@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.airclip.AirClipApp
 import com.airclip.core.sync.PublishSource
 import com.airclip.runtime.SendFeedback
+import com.airclip.runtime.SendOutcome
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -59,23 +60,34 @@ class ClipboardRelayActivity : ComponentActivity() {
             val source = intent?.getStringExtra(EXTRA_SOURCE)
                 ?.let { name -> runCatching { PublishSource.valueOf(name) }.getOrNull() }
                 ?: PublishSource.TILE
+            val quiet = intent?.getBooleanExtra(EXTRA_QUIET, false) == true
 
             val outcome = runtime.withReadWindow { runtime.sendClipboard(source) }
-            SendFeedback.message(this@ClipboardRelayActivity, outcome)?.let { message ->
-                Toast.makeText(this@ClipboardRelayActivity, message, Toast.LENGTH_SHORT).show()
-            }
+            // A quiet launch was nobody's tap: it happens on every copy, so a success toast each time
+            // would be its own annoyance. Anything the user has to act on still gets shown.
+            SendFeedback.message(this@ClipboardRelayActivity, outcome)
+                ?.takeUnless { quiet && outcome is SendOutcome.Sent }
+                ?.let { message ->
+                    Toast.makeText(this@ClipboardRelayActivity, message, Toast.LENGTH_SHORT).show()
+                }
             finish()
         }
     }
 
     companion object {
         private const val EXTRA_SOURCE = "com.airclip.extra.SOURCE"
+        private const val EXTRA_QUIET = "com.airclip.extra.QUIET"
         private const val FOCUS_GRACE_MS = 450L
 
-        /** Send the clipboard as soon as this activity can legally read it. */
-        fun sendIntent(context: Context, source: PublishSource): Intent =
+        /**
+         * Send the clipboard as soon as this activity can legally read it.
+         *
+         * @param quiet suppress the "sent" toast, for automatic triggers rather than user taps.
+         */
+        fun sendIntent(context: Context, source: PublishSource, quiet: Boolean = false): Intent =
             Intent(context, ClipboardRelayActivity::class.java)
                 .putExtra(EXTRA_SOURCE, source.name)
+                .putExtra(EXTRA_QUIET, quiet)
                 .addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TASK or

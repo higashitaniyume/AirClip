@@ -21,4 +21,8 @@
     <ProjectReference Include="..\AirClip.Platform.Windows\AirClip.Platform.Windows.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+  </ItemGroup>
+
 </Project>

@@ -1,28 +1,26 @@
 package com.airclip.platform.shizuku
 
-import android.content.ClipData
 import android.content.Context
 import android.os.Build
 import android.os.IBinder
-import java.lang.reflect.Method
+import android.os.Process
+import android.util.Log
+import com.airclip.core.diag.formatLogTime
 
 /**
- * Runs inside the Shizuku-spawned process (shell UID), which is why it may talk to the hidden
- * `IClipboard` service at all: `ClipboardService` exempts the shell from the "must be the default
- * IME or have focus" rule that blocks ordinary apps on Android 10+.
+ * Runs inside the Shizuku-spawned process (shell UID, or root when Shizuku itself runs as root),
+ * which is why it may talk to the hidden `IClipboard` service at all: `ClipboardService` exempts
+ * `com.android.shell` — which holds `READ_CLIPBOARD_IN_BACKGROUND` — from the "must be the default
+ * IME or have window focus" rule that blocks ordinary apps on Android 10+. This process also has no
+ * hidden-API policy installed, so the reflection in [ClipboardReflect] needs no exemption here.
  *
- * Everything is reflection because `IClipboard`'s signature changed almost every release:
+ * The clipboard work itself lives in [ClipboardReflect], shared with [ShizukuDirectClipboard]; what
+ * remains here is the part that only makes sense across a process boundary.
  *
- * ```
- * API 29  getPrimaryClip(String pkg)
- * API 30  getPrimaryClip(String pkg, int userId)
- * API 31  getPrimaryClip(String pkg, String attributionTag, int userId)
- * API 34  getPrimaryClip(String pkg, String attributionTag, int userId, int deviceId)
- * ```
- *
- * Rather than branch per release, [fillArguments] assigns by parameter type in declaration order:
- * first `String` is the calling package, second is the attribution tag, first `int` is the user id,
- * second is the device id.
+ * This process cannot reach `AirClipLog` — it is a different process with its own heap — so it keeps
+ * its own [journal] that the app drains over the binder. Every refusal the platform hands back is
+ * recorded there, because "Shizuku is authorised but nothing syncs" is almost always answered by the
+ * exact text of one `SecurityException`.
  */
 class AirClipShizukuService() : IShizukuClipboard.Stub() {
 
@@ -30,94 +28,88 @@ class AirClipShizukuService() : IShizukuClipboard.Stub() {
     @Suppress("UNUSED_PARAMETER")
     constructor(context: Context) : this()
 
-    private val diagnostics = StringBuilder()
-    private val clipboard: Any? by lazy { resolveClipboardService() }
+    private val lock = Any()
+    private val journal = ArrayDeque<String>()
 
-    override fun getPrimaryClipText(): String? {
-        val service = clipboard ?: return null
-        val method = findMethod(service, "getPrimaryClip") ?: return null
-        val clip = runCatching { method.invoke(service, *fillArguments(method, null)) as? ClipData }
-            .onFailure { note("getPrimaryClip failed: ${it.cause ?: it}") }
-            .getOrNull() ?: return null
+    private val reflect = ClipboardReflect(
+        label = "辅助进程",
+        // Here the process's own uid *is* the calling uid: the transaction leaves from this process.
+        callingUid = Process::myUid,
+        binder = ::rawClipboardBinder,
+        note = ::note,
+    )
 
-        if (clip.itemCount == 0) return ""
-        val item = clip.getItemAt(0)
-        return item.text?.toString() ?: item.uri?.toString() ?: ""
+    init {
+        note(
+            "helper started api=${Build.VERSION.SDK_INT} uid=${Process.myUid()} pid=${Process.myPid()} " +
+                "user=${userId()} device=${Build.MANUFACTURER}/${Build.MODEL} build=${Build.DISPLAY}",
+        )
     }
 
-    override fun setPrimaryClipText(text: String?): Boolean {
-        val service = clipboard ?: return false
-        val method = findMethod(service, "setPrimaryClip") ?: return false
-        val clip = ClipData.newPlainText(LABEL, text.orEmpty())
-        return runCatching { method.invoke(service, *fillArguments(method, clip)) }
-            .onFailure { note("setPrimaryClip failed: ${it.cause ?: it}") }
-            .isSuccess
-    }
+    /**
+     * `null` means "no answer": the service was never resolved, the method is missing, or every
+     * calling-package candidate was refused. An empty string means the platform answered with an
+     * empty clip. The [journal] carries which of those it was.
+     */
+    override fun getPrimaryClipText(): String? = reflect.text()
 
+    override fun setPrimaryClipText(text: String?): Boolean = reflect.setText(text)
+
+    /** Everything the settings screen and the self-test need to judge this half of the plan. */
     override fun describeBackend(): String = buildString {
         append("api=").append(Build.VERSION.SDK_INT)
-        append(" uid=").append(android.os.Process.myUid())
-        append(" service=").append(if (clipboard != null) "bound" else "missing")
-        if (diagnostics.isNotEmpty()) append(' ').append(diagnostics)
+        append(" uid=").append(Process.myUid()).append(uidLabel())
+        append(" user=").append(userId())
+        append(" device=").append(Build.MANUFACTURER).append('/').append(Build.MODEL)
+        append("\n  ").append(reflect.describe())
+    }
+
+    override fun drainLog(): String = synchronized(lock) {
+        val text = journal.joinToString("\n")
+        journal.clear()
+        text
     }
 
     override fun destroy() {
         // Nothing to release: the binder proxy is owned by the system, and Shizuku kills the process.
+        note("helper 收到 destroy")
     }
 
-    private fun resolveClipboardService(): Any? = runCatching {
+    /**
+     * The unwrapped system binder. `ServiceManager` is not public API, but nothing in this process
+     * enforces that, and no Shizuku round trip is needed either — the transaction already leaves from
+     * a shell-uid process.
+     */
+    private fun rawClipboardBinder(): IBinder {
         val serviceManager = Class.forName("android.os.ServiceManager")
         val binder = serviceManager
             .getMethod("getService", String::class.java)
-            .invoke(null, Context.CLIPBOARD_SERVICE) as? IBinder
-
-        if (binder == null) {
-            note("no clipboard binder")
-            return@runCatching null
-        }
-
-        Class.forName("android.content.IClipboard\$Stub")
-            .getMethod("asInterface", IBinder::class.java)
-            .invoke(null, binder)
-    }.onFailure { note("resolve failed: ${it.cause ?: it}") }.getOrNull()
-
-    /** Prefers the overload with the most parameters: that is the one the running platform declares. */
-    private fun findMethod(service: Any, name: String): Method? {
-        val candidates = service.javaClass.methods.filter { it.name == name }
-        if (candidates.isEmpty()) {
-            note("$name not found")
-            return null
-        }
-        return candidates.maxByOrNull { it.parameterCount }
+            .invoke(null, CLIPBOARD_SERVICE_NAME) as? IBinder
+        return binder ?: error("ServiceManager 返回 null —— 这台 ROM 没有标准剪贴板服务")
     }
 
-    private fun fillArguments(method: Method, clip: ClipData?): Array<Any?> {
-        var stringsSeen = 0
-        var intsSeen = 0
-        return method.parameterTypes.map { type ->
-            when {
-                ClipData::class.java.isAssignableFrom(type) -> clip
-                type == String::class.java -> if (stringsSeen++ == 0) CALLING_PACKAGE else null
-                type == Int::class.javaPrimitiveType -> if (intsSeen++ == 0) userId() else DEVICE_ID_DEFAULT
-                else -> null.also { note("unmapped parameter ${type.name} on ${method.name}") }
-            }
-        }.toTypedArray()
+    private fun uidLabel(): String = when (Process.myUid()) {
+        UID_ROOT -> "(root)"
+        UID_SHELL -> "(shell)"
+        else -> ""
     }
-
-    private fun userId(): Int = runCatching {
-        Class.forName("android.os.UserHandle").getMethod("myUserId").invoke(null) as Int
-    }.getOrDefault(0)
 
     private fun note(message: String) {
-        if (diagnostics.length < 512) {
-            diagnostics.append('[').append(message).append(']')
+        Log.i(LOGCAT_TAG, message)
+        synchronized(lock) {
+            journal.addLast("${formatLogTime(System.currentTimeMillis())} $message")
+            while (journal.size > JOURNAL_CAPACITY) journal.removeFirst()
         }
     }
 
     private companion object {
-        /** Must match the shell UID this process runs as, or the service rejects the call. */
-        const val CALLING_PACKAGE = "com.android.shell"
-        const val DEVICE_ID_DEFAULT = 0
-        const val LABEL = "AirClip"
+        const val LOGCAT_TAG = "AirClipSvc"
+
+        /** The uid this process runs as; `android.os.Process`' own constants are not public API. */
+        const val UID_ROOT = 0
+        const val UID_SHELL = 2000
+
+        /** Bounded: nobody drains this while the app is closed. */
+        const val JOURNAL_CAPACITY = 200
     }
 }

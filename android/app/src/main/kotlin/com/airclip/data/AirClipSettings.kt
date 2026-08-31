@@ -34,9 +34,6 @@ data class AirClipSettings(
     /** Extra "收到内容" toast on top of the notification; cheap reassurance while pairing. */
     val toastOnReceive: Boolean = true,
 
-    /** Refuse plaintext frames. On by default: a LAN is not a trust boundary. */
-    val requireEncryption: Boolean = true,
-
     /** Let the accessibility path flash a 1x1 focusable overlay so the platform allows the read. */
     val overlayAssist: Boolean = true,
 

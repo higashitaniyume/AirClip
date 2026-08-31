@@ -341,6 +341,48 @@
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="160" />
                     <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="配对二维码" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1">
+                    <!-- Stretch="None" plus NearestNeighbor: the bitmap is already a whole number of pixels
+                         per module, and any resampling on the way to the screen is what breaks a scan. -->
+                    <Image Source="{Binding PairingQrImage}" Stretch="None" HorizontalAlignment="Left"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"
+                           AutomationProperties.Name="配对二维码"
+                           AutomationProperties.HelpText="用手机扫描以加入这一组设备；也可以改用上面的配对码手动输入。">
+                      <Image.Style>
+                        <Style TargetType="Image">
+                          <Setter Property="Visibility" Value="Collapsed" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPairingRevealed}" Value="True">
+                              <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Image.Style>
+                    </Image>
+                    <TextBlock Text="二维码里就是配对码本身，所以和配对码一起隐藏。点上面的「显示配对码」即可让手机扫。"
+                               TextWrapping="Wrap">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Muted}">
+                          <Setter Property="Visibility" Value="Collapsed" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPairingRevealed}" Value="False">
+                              <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </StackPanel>
+                </Grid>
+                <TextBlock Text="在手机上点「扫描电脑二维码」对准这里即可完成配对，不用手打 32 位配对码。二维码带上了本机的设备名、服务名和端口，改完这些设置会自动重画。"
+                           Style="{StaticResource Text.Muted}" Margin="160,6,0,0" TextWrapping="Wrap" />
+
+                <Grid Margin="0,12,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                   </Grid.ColumnDefinitions>
                   <TextBlock Text="输入对方的配对码" VerticalAlignment="Center" />

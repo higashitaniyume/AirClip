@@ -10,6 +10,8 @@ import com.airclip.core.clipboard.ClipContent
 import com.airclip.core.clipboard.ClipboardOptions
 import com.airclip.core.clipboard.ClipboardReadFailure
 import com.airclip.core.clipboard.ClipboardReader
+import com.airclip.core.diag.AirClipLog
+import com.airclip.core.diag.LogTag
 import com.airclip.platform.shizuku.ShizukuClipboardBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,17 +46,40 @@ class AndroidClipboardReader(
             runCatching { clipboard?.primaryClip }.getOrNull()
         }
         if (clip != null && clip.itemCount > 0) {
-            return fromClipData(clip)
+            val content = fromClipData(clip)
+            AirClipLog.i(
+                LogTag.CLIPBOARD,
+                "系统框架读取成功 $content" + if (content == null) "（原因 $lastFailure）" else "",
+            )
+            return content
         }
+        AirClipLog.d(
+            LogTag.CLIPBOARD,
+            "系统框架读取无结果（clip=${if (clip == null) "null——被系统拒绝或剪贴板为空" else "itemCount=0"}，" +
+                "当前有读取窗口=${foregroundReadAllowed()}），改用 Shizuku",
+        )
 
         shizuku.getText()?.let { text ->
-            return if (text.isEmpty()) fail(ClipboardReadFailure.EMPTY) else ClipContent.fromText(text)
+            if (text.isEmpty()) {
+                AirClipLog.w(LogTag.CLIPBOARD, "Shizuku 读到空内容，判定为剪贴板为空")
+                return fail(ClipboardReadFailure.EMPTY)
+            }
+            AirClipLog.i(LogTag.CLIPBOARD, "Shizuku 读取成功 ${AirClipLog.redact(text)}")
+            return ClipContent.fromText(text)
         }
 
         // An allowed-but-empty read is a genuinely empty clipboard; otherwise the platform said no.
-        return fail(
-            if (foregroundReadAllowed()) ClipboardReadFailure.EMPTY else ClipboardReadFailure.DENIED_BACKGROUND,
+        val reason = if (foregroundReadAllowed()) {
+            ClipboardReadFailure.EMPTY
+        } else {
+            ClipboardReadFailure.DENIED_BACKGROUND
+        }
+        AirClipLog.w(
+            LogTag.CLIPBOARD,
+            "两条路都读不到剪贴板，判定为 $reason。" +
+                "若 Shizuku 已授权仍是这一行，请运行「Shizuku 自检」查看辅助进程那侧的原因",
         )
+        return fail(reason)
     }
 
     private suspend fun fromClipData(clip: ClipData): ClipContent? {

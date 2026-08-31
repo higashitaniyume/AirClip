@@ -52,21 +52,29 @@ object ClipMessageFactory {
     }
 
     /**
-     * Doubles as the handshake hello: `ping` is the only message type in the 1.0 schema that carries
-     * an identity without clipboard content, so both platforms use it to introduce themselves.
+     * A heartbeat. It carries a token nobody reads, which sounds like waste but is not: a payload is
+     * what [com.airclip.core.crypto.MessageProtector] seals, so sealing the heartbeat puts its header
+     * under GCM's associated data and its nonce under the replay counter. The far end rejects a
+     * payload-less frame outright rather than trusting it as an unencrypted ping.
      */
     fun ping(device: DeviceIdentity): ClipMessage = ClipMessage(
         deviceId = device.id,
         deviceName = device.name,
         type = ClipMessageType.PING,
+        payload = ClipPayload(content = "ping"),
     )
 
-    /** The acknowledged `msg_id` travels in `payload.content`: the 1.0 schema has no reply field. */
+    /**
+     * The acknowledged `msg_id` travels in the `hash` field. That is the only field the fixed 1.0 schema
+     * leaves free for correlation, and it is covered by the associated data, so it cannot be rewritten
+     * in flight to make a ping look answered when it was not.
+     */
     fun ack(device: DeviceIdentity, acknowledgedMessageId: String): ClipMessage = ClipMessage(
         deviceId = device.id,
         deviceName = device.name,
         type = ClipMessageType.ACK,
-        payload = ClipPayload(content = acknowledgedMessageId),
+        hash = acknowledgedMessageId,
+        payload = ClipPayload(content = "ack"),
     )
 
     fun decode(message: ClipMessage): DecodedMessage {

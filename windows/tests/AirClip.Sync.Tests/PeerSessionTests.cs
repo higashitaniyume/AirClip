@@ -231,7 +231,29 @@ public class PeerSessionTests
 
         PeerHandshakeException failure = await Assert.ThrowsAsync<PeerHandshakeException>(
             () => ready.Task.WaitAsync(Patience));
-        Assert.Equal("握手阶段收到了非二进制帧", failure.Message);
+        Assert.Equal("对端跳过握手直接发送了报文，可能仍在运行旧版本", failure.Message);
+        hold.TrySetResult();
+        await listener.StopAsync();
+    }
+
+    [Fact]
+    public async Task A_peer_that_hangs_up_without_answering_is_reported_as_having_hung_up()
+    {
+        // The failure a user actually meets: the far side refuses the connection before saying anything —
+        // it is not paired, so it has nothing to say — and closes. That has to read as a close, because
+        // "非二进制帧" sends whoever is holding the log looking for a protocol bug that is not there.
+        PairingKey key = PairingKey.Create();
+        var ready = new TaskCompletionSource<PeerSession>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using AirClipListener listener = Loopback.StartServer(key, ready, hold);
+
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(Loopback.EndpointFor(listener.Port), CancellationToken.None);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+
+        PeerHandshakeException failure = await Assert.ThrowsAsync<PeerHandshakeException>(
+            () => ready.Task.WaitAsync(Patience));
+        Assert.Equal("对端在握手完成前关闭了连接", failure.Message);
         hold.TrySetResult();
         await listener.StopAsync();
     }

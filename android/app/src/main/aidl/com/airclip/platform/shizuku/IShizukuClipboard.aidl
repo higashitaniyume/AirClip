@@ -13,4 +13,11 @@ interface IShizukuClipboard {
 
     /** Human-readable backend state for the settings screen (matched signature, API level, errors). */
     String describeBackend() = 3;
+
+    /**
+     * Log lines the helper has accumulated since the last call, oldest first, newline separated.
+     * Drained rather than snapshotted: the app copies them into its own buffer, and the helper's
+     * memory budget is one shell process nobody is watching.
+     */
+    String drainLog() = 4;
 }
